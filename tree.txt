@@ -1,0 +1,16 @@
+projeto_lavadora/
+├── data_collection/
+│   ├── ligado_desligado/
+│   ├── centrifugacao/
+│   ├── enxague/
+│   ├── molho_curto/
+│   ├── molho_normal/
+│   └── molho_longo/
+├── model_training/
+│   ├── dataset/
+│   ├── model.tflite
+│   └── training_script.py
+├── arduino_code/
+│   └── washing_machine_ai.ino
+└── docs/
+    └── README.md
