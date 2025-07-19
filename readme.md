@@ -26,7 +26,7 @@ O projeto implementa várias técnicas web modernas para coleta de dados robusta
 - **[CSS Transform](https://developer.mozilla.org/pt-BR/docs/Web/CSS/transform)** e **[Transition](https://developer.mozilla.org/pt-BR/docs/Web/CSS/transition)** para feedback visual instantâneo em interações do usuário
 - **[Headers Cache-Control](https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Headers/Cache-Control)** para prevenção de cache em streams de imagem em tempo real
 
-## Tecnologias Não-Óbvias
+## Tecnologias utilizadas
 
 O stack técnico combina tecnologias embarcadas e web de forma interessante:
 
@@ -114,14 +114,3 @@ O sistema elimina dependências de computação em nuvem executando toda classif
 ## Licença
 
 Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## Contribuindo
-
-Contribuições são bem-vindas! Sinta-se livre para enviar um Pull Request. Para mudanças importantes, abra uma issue primeiro para discutir o que gostaria de alterar.
-
-## Agradecimentos
-
-- **Espressif Systems** pelo hardware ESP32-CAM e drivers
-- **Equipe TensorFlow** pelo suporte TensorFlow Lite para microcontroladores
-- **SinricPro** pela integração simplificada com Alexa
-- **Edge Impulse** pela plataforma acessível de treinamento TinyML
