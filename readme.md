@@ -9,6 +9,11 @@
 
 Transforma qualquer lavadora comum em um dispositivo IoT inteligente usando visão computacional e aprendizado de máquina embarcado. O sistema detecta as etapas do ciclo de lavagem analisando padrões de LEDs no painel de controle usando ESP32-CAM com inferência TinyML local.
 
+| ESP32-CAM | Painel LAC11 |
+|-----------|--------------|
+| ![](/images/esp32-cam-mb.jpg) | ![](/images/lac11.jpg) |
+
+
 ## Descrição
 
 Este projeto converte uma lavadora tradicional em um dispositivo IoT inteligente sem qualquer modificação de hardware no aparelho. Utiliza um ESP32-CAM posicionado para monitorar o painel de LEDs da máquina, executando um modelo de classificação TinyML localmente para identificar diferentes etapas de lavagem (centrifugação, enxágue, ciclos de molho, etc.).
