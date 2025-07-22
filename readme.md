@@ -58,12 +58,12 @@ O stack técnico combina tecnologias embarcadas e web de forma interessante:
 projeto_lavadora/
 ├── arduino_code/
 ├── data_collection/
-│   ├── ligado_desligado/
 │   ├── centrifugacao/
+│   ├── desligado/
 │   ├── enxague/
 │   ├── molho_curto/
-│   ├── molho_normal/
 │   └── molho_longo/
+│   ├── molho_normal/
 ├── model_training/
 │   ├── dataset/
 │   │   ├── train/
