@@ -48,13 +48,13 @@ void setup() {
   Serial.println("=== INICIANDO SISTEMA DE COLETA ===");
   
   // Configurar câmera
-  Serial.println("1. Configurando câmera...");
+  Serial.println("1. Configurando camera...");
   if (!initCamera()) {
-    Serial.println("❌ ERRO: Falha ao configurar câmera!");
-    Serial.println("Verifique as conexões e reinicie o ESP32-CAM");
+    Serial.println("ERRO: Falha ao configurar camera!");
+    Serial.println("Verifique as conexoes e reinicie o ESP32-CAM");
     while(1);
   }
-  Serial.println("✅ Câmera configurada com sucesso!");
+  Serial.println("Camera configurada com sucesso!");
   
   // Conectar WiFi
   Serial.println("2. Conectando ao WiFi...");
@@ -65,8 +65,8 @@ void setup() {
   setupWebServer();
   
   Serial.println("=== SISTEMA PRONTO! ===");
-  Serial.println("🌐 Acesse: http://" + WiFi.localIP().toString());
-  Serial.println("📱 Use seu celular ou computador para capturar imagens");
+  Serial.println("Acesse: http://" + WiFi.localIP().toString());
+  Serial.println("Use seu celular ou computador para capturar imagens");
   Serial.println();
 }
 
@@ -158,12 +158,12 @@ void connectToWiFi() {
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println();
-    Serial.println("✅ WiFi conectado!");
-    Serial.print("📡 IP: ");
+    Serial.println("WiFi conectado!");
+    Serial.print("IP: ");
     Serial.println(WiFi.localIP());
   } else {
     Serial.println();
-    Serial.println("❌ ERRO: Não foi possível conectar ao WiFi");
+    Serial.println("ERRO: Nao foi possivel conectar ao WiFi");
     Serial.println("Verifique SSID e senha, depois reinicie o ESP32-CAM");
     while(1);
   }
@@ -176,273 +176,170 @@ void setupWebServer() {
   server.on("/setclass", handleSetClass);
   server.on("/stats", handleStats);
   server.begin();
-  Serial.println("✅ Servidor web ativo!");
+  Serial.println("Servidor web ativo!");
 }
 
 // =================== HANDLERS WEB ===================
 
 void handleRoot() {
-  String html = R"(
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📸 Coleta de Dados - Lavadora IoT</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            min-height: 100vh;
-        }
-        .container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            background: rgba(255,255,255,0.95); 
-            padding: 30px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        h1 { 
-            text-align: center; 
-            color: #2c3e50; 
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-        .status-panel {
-            background: #ecf0f1;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 5px solid #3498db;
-        }
-        .class-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .class-btn {
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-        }
-        .class-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .btn-ligado { background: #e74c3c; color: white; }
-        .btn-centrifugacao { background: #9b59b6; color: white; }
-        .btn-enxague { background: #3498db; color: white; }
-        .btn-molho-curto { background: #1abc9c; color: white; }
-        .btn-molho-normal { background: #f39c12; color: white; }
-        .btn-molho-longo { background: #34495e; color: white; }
-        
-        .active-class { border: 4px solid #27ae60 !important; box-shadow: 0 0 20px rgba(39,174,96,0.5); }
-        
-        .preview-section {
-            text-align: center;
-            margin: 30px 0;
-        }
-        .preview-img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            margin: 20px 0;
-        }
-        .capture-btn {
-            background: #27ae60;
-            color: white;
-            padding: 20px 40px;
-            border: none;
-            border-radius: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 10px;
-        }
-        .capture-btn:hover { 
-            background: #229954; 
-            transform: scale(1.05);
-        }
-        .capture-btn:disabled {
-            background: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .stats { 
-            font-size: 18px; 
-            text-align: center; 
-            margin: 20px 0;
-        }
-        .current-class { 
-            font-weight: bold; 
-            font-size: 24px; 
-            color: #e74c3c;
-        }
-        .tips {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .tips h3 { color: #d68910; margin-top: 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>📸 Coleta de Dados - Lavadora IoT</h1>
-        
-        <div class="status-panel">
-            <div class="stats">
-                <p>🎯 <strong>Classe Atual:</strong> <span class="current-class" id="currentClass">Selecione uma classe</span></p>
-                <p>📊 <strong>Imagens desta classe:</strong> <span id="classCount">0</span></p>
-                <p>📈 <strong>Total de imagens:</strong> <span id="totalCount">0</span></p>
-            </div>
-        </div>
+  String html = "<!DOCTYPE html>";
+  html += "<html>";
+  html += "<head>";
+  html += "<meta charset='UTF-8'>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  html += "<title>Coleta de Dados - Lavadora IoT</title>";
+  html += "<style>";
+  html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; min-height: 100vh; }";
+  html += ".container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.95); padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }";
+  html += "h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; font-size: 2.5em; }";
+  html += ".status-panel { background: #ecf0f1; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 5px solid #3498db; }";
+  html += ".class-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }";
+  html += ".class-btn { padding: 15px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: all 0.3s ease; font-weight: bold; }";
+  html += ".class-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }";
+  html += ".btn-ligado { background: #e74c3c; color: white; }";
+  html += ".btn-centrifugacao { background: #9b59b6; color: white; }";
+  html += ".btn-enxague { background: #3498db; color: white; }";
+  html += ".btn-molho-curto { background: #1abc9c; color: white; }";
+  html += ".btn-molho-normal { background: #f39c12; color: white; }";
+  html += ".btn-molho-longo { background: #34495e; color: white; }";
+  html += ".active-class { border: 4px solid #27ae60 !important; box-shadow: 0 0 20px rgba(39,174,96,0.5); }";
+  html += ".preview-section { text-align: center; margin: 30px 0; }";
+  html += ".preview-img { max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); margin: 20px 0; }";
+  html += ".capture-btn { background: #27ae60; color: white; padding: 20px 40px; border: none; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; margin: 10px; }";
+  html += ".capture-btn:hover { background: #229954; transform: scale(1.05); }";
+  html += ".capture-btn:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }";
+  html += ".stats { font-size: 18px; text-align: center; margin: 20px 0; }";
+  html += ".current-class { font-weight: bold; font-size: 24px; color: #e74c3c; }";
+  html += ".tips { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0; }";
+  html += ".tips h3 { color: #d68910; margin-top: 0; }";
+  html += "</style>";
+  html += "</head>";
+  html += "<body>";
+  html += "<div class='container'>";
+  html += "<h1>Coleta de Dados - Lavadora IoT</h1>";
+  
+  html += "<div class='status-panel'>";
+  html += "<div class='stats'>";
+  html += "<p><strong>Classe Atual:</strong> <span class='current-class' id='currentClass'>Selecione uma classe</span></p>";
+  html += "<p><strong>Imagens desta classe:</strong> <span id='classCount'>0</span></p>";
+  html += "<p><strong>Total de imagens:</strong> <span id='totalCount'>0</span></p>";
+  html += "</div>";
+  html += "</div>";
 
-        <div class="tips">
-            <h3>💡 Dicas para boa coleta:</h3>
-            <ul>
-                <li>Mantenha a ESP32-CAM na mesma posição durante toda a coleta</li>
-                <li>Capture imagens em diferentes horários (manhã, tarde, noite)</li>
-                <li>Capture pelo menos 100 imagens por classe</li>
-                <li>Varie ligeiramente o ângulo (±5 graus) entre capturas</li>
-            </ul>
-        </div>
-        
-        <h2>🏷️ Selecionar Classe:</h2>
-        <div class="class-buttons">
-            <button class="class-btn btn-ligado" onclick="setClass('ligado_desligado')">🔴 Ligado/Desligado</button>
-            <button class="class-btn btn-centrifugacao" onclick="setClass('centrifugacao')">🌀 Centrifugação</button>
-            <button class="class-btn btn-enxague" onclick="setClass('enxague')">💧 Enxágue</button>
-            <button class="class-btn btn-molho-curto" onclick="setClass('molho_curto')">⏱️ Molho Curto</button>
-            <button class="class-btn btn-molho-normal" onclick="setClass('molho_normal')">⏰ Molho Normal</button>
-            <button class="class-btn btn-molho-longo" onclick="setClass('molho_longo')">⏳ Molho Longo</button>
-        </div>
-        
-        <div class="preview-section">
-            <h2>📷 Preview e Captura:</h2>
-            <button class="capture-btn" onclick="updatePreview()">🔄 Atualizar Preview</button>
-            <button class="capture-btn" id="captureBtn" onclick="captureImage()" disabled>📸 CAPTURAR IMAGEM</button>
-            <div id="previewContainer">
-                <p>Clique em "Atualizar Preview" para ver a imagem atual da câmera</p>
-            </div>
-        </div>
-    </div>
+  html += "<div class='tips'>";
+  html += "<h3>Dicas para boa coleta:</h3>";
+  html += "<ul>";
+  html += "<li>Mantenha a ESP32-CAM na mesma posicao durante toda a coleta</li>";
+  html += "<li>Capture imagens em diferentes horarios (manha, tarde, noite)</li>";
+  html += "<li>Capture pelo menos 100 imagens por classe</li>";
+  html += "<li>Varie ligeiramente o angulo (±5 graus) entre capturas</li>";
+  html += "</ul>";
+  html += "</div>";
+  
+  html += "<h2>Selecionar Classe:</h2>";
+  html += "<div class='class-buttons'>";
+  html += "<button class='class-btn btn-ligado' onclick='setClass(\"ligado_desligado\")'>Ligado/Desligado</button>";
+  html += "<button class='class-btn btn-centrifugacao' onclick='setClass(\"centrifugacao\")'>Centrifugacao</button>";
+  html += "<button class='class-btn btn-enxague' onclick='setClass(\"enxague\")'>Enxague</button>";
+  html += "<button class='class-btn btn-molho-curto' onclick='setClass(\"molho_curto\")'>Molho Curto</button>";
+  html += "<button class='class-btn btn-molho-normal' onclick='setClass(\"molho_normal\")'>Molho Normal</button>";
+  html += "<button class='class-btn btn-molho-longo' onclick='setClass(\"molho_longo\")'>Molho Longo</button>";
+  html += "</div>";
+  
+  html += "<div class='preview-section'>";
+  html += "<h2>Preview e Captura:</h2>";
+  html += "<button class='capture-btn' onclick='updatePreview()'>Atualizar Preview</button>";
+  html += "<button class='capture-btn' id='captureBtn' onclick='captureImage()' disabled>CAPTURAR IMAGEM</button>";
+  html += "<div id='previewContainer'>";
+  html += "<p>Clique em 'Atualizar Preview' para ver a imagem atual da camera</p>";
+  html += "</div>";
+  html += "</div>";
+  html += "</div>";
 
-    <script>
-        let currentClassSelected = '';
-        
-        function setClass(className) {
-            currentClassSelected = className;
-            
-            // Remover classe ativa de todos os botões
-            document.querySelectorAll('.class-btn').forEach(btn => {
-                btn.classList.remove('active-class');
-            });
-            
-            // Adicionar classe ativa ao botão clicado
-            event.target.classList.add('active-class');
-            
-            // Atualizar display
-            document.getElementById('currentClass').textContent = className.replace('_', ' ');
-            
-            // Habilitar botão de captura
-            document.getElementById('captureBtn').disabled = false;
-            
-            // Enviar para ESP32
-            fetch('/setclass?class=' + className)
-                .then(response => response.text())
-                .then(data => {
-                    console.log('Classe definida:', className);
-                    updateStats();
-                })
-                .catch(error => console.error('Erro:', error));
-        }
-        
-        function updatePreview() {
-            const container = document.getElementById('previewContainer');
-            container.innerHTML = '<p>🔄 Carregando preview...</p>';
-            
-            const img = new Image();
-            img.onload = function() {
-                container.innerHTML = '';
-                img.className = 'preview-img';
-                container.appendChild(img);
-            };
-            img.onerror = function() {
-                container.innerHTML = '<p style="color: red;">❌ Erro ao carregar preview</p>';
-            };
-            img.src = '/preview?t=' + new Date().getTime();
-        }
-        
-        function captureImage() {
-            if (!currentClassSelected) {
-                alert('Selecione uma classe primeiro!');
-                return;
-            }
-            
-            const btn = document.getElementById('captureBtn');
-            btn.disabled = true;
-            btn.textContent = '📸 Capturando...';
-            
-            fetch('/capture')
-                .then(response => response.text())
-                .then(data => {
-                    console.log('Imagem capturada:', data);
-                    updateStats();
-                    updatePreview(); // Atualizar preview após captura
-                    
-                    // Feedback visual
-                    btn.style.background = '#27ae60';
-                    btn.textContent = '✅ Capturada!';
-                    
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.textContent = '📸 CAPTURAR IMAGEM';
-                        btn.style.background = '#27ae60';
-                    }, 1000);
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    btn.disabled = false;
-                    btn.textContent = '❌ Erro!';
-                    btn.style.background = '#e74c3c';
-                    
-                    setTimeout(() => {
-                        btn.textContent = '📸 CAPTURAR IMAGEM';
-                        btn.style.background = '#27ae60';
-                    }, 2000);
-                });
-        }
-        
-        function updateStats() {
-            fetch('/stats')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('classCount').textContent = data.classCount;
-                    document.getElementById('totalCount').textContent = data.totalCount;
-                })
-                .catch(error => console.error('Erro ao atualizar stats:', error));
-        }
-        
-        // Atualizar stats ao carregar a página
-        updateStats();
-        
-        // Auto-refresh stats a cada 5 segundos
-        setInterval(updateStats, 5000);
-    </script>
-</body>
-</html>
-  )";
+  html += "<script>";
+  html += "let currentClassSelected = '';";
+  
+  html += "function setClass(className) {";
+  html += "currentClassSelected = className;";
+  html += "document.querySelectorAll('.class-btn').forEach(btn => {";
+  html += "btn.classList.remove('active-class');";
+  html += "});";
+  html += "event.target.classList.add('active-class');";
+  html += "document.getElementById('currentClass').textContent = className.replace('_', ' ');";
+  html += "document.getElementById('captureBtn').disabled = false;";
+  html += "fetch('/setclass?class=' + className)";
+  html += ".then(response => response.text())";
+  html += ".then(data => {";
+  html += "console.log('Classe definida:', className);";
+  html += "updateStats();";
+  html += "})";
+  html += ".catch(error => console.error('Erro:', error));";
+  html += "}";
+  
+  html += "function updatePreview() {";
+  html += "const container = document.getElementById('previewContainer');";
+  html += "container.innerHTML = '<p>Carregando preview...</p>';";
+  html += "const img = new Image();";
+  html += "img.onload = function() {";
+  html += "container.innerHTML = '';";
+  html += "img.className = 'preview-img';";
+  html += "container.appendChild(img);";
+  html += "};";
+  html += "img.onerror = function() {";
+  html += "container.innerHTML = '<p style=\"color: red;\">Erro ao carregar preview</p>';";
+  html += "};";
+  html += "img.src = '/preview?t=' + new Date().getTime();";
+  html += "}";
+  
+  html += "function captureImage() {";
+  html += "if (!currentClassSelected) {";
+  html += "alert('Selecione uma classe primeiro!');";
+  html += "return;";
+  html += "}";
+  html += "const btn = document.getElementById('captureBtn');";
+  html += "btn.disabled = true;";
+  html += "btn.textContent = 'Capturando...';";
+  html += "fetch('/capture')";
+  html += ".then(response => response.text())";
+  html += ".then(data => {";
+  html += "console.log('Imagem capturada:', data);";
+  html += "updateStats();";
+  html += "updatePreview();";
+  html += "btn.style.background = '#27ae60';";
+  html += "btn.textContent = 'Capturada!';";
+  html += "setTimeout(() => {";
+  html += "btn.disabled = false;";
+  html += "btn.textContent = 'CAPTURAR IMAGEM';";
+  html += "btn.style.background = '#27ae60';";
+  html += "}, 1000);";
+  html += "})";
+  html += ".catch(error => {";
+  html += "console.error('Erro:', error);";
+  html += "btn.disabled = false;";
+  html += "btn.textContent = 'Erro!';";
+  html += "btn.style.background = '#e74c3c';";
+  html += "setTimeout(() => {";
+  html += "btn.textContent = 'CAPTURAR IMAGEM';";
+  html += "btn.style.background = '#27ae60';";
+  html += "}, 2000);";
+  html += "});";
+  html += "}";
+  
+  html += "function updateStats() {";
+  html += "fetch('/stats')";
+  html += ".then(response => response.json())";
+  html += ".then(data => {";
+  html += "document.getElementById('classCount').textContent = data.classCount;";
+  html += "document.getElementById('totalCount').textContent = data.totalCount;";
+  html += "})";
+  html += ".catch(error => console.error('Erro ao atualizar stats:', error));";
+  html += "}";
+  
+  html += "updateStats();";
+  html += "setInterval(updateStats, 5000);";
+  html += "</script>";
+  html += "</body>";
+  html += "</html>";
   
   server.send(200, "text/html", html);
 }
@@ -481,7 +378,7 @@ void handleCapture() {
   String filename = currentClass + "_" + String(imageCountClass) + "_" + String(millis()) + ".jpg";
   
   // Log no serial
-  Serial.println("📸 IMAGEM CAPTURADA:");
+  Serial.println("IMAGEM CAPTURADA:");
   Serial.println("   Classe: " + currentClass);
   Serial.println("   Arquivo: " + filename);
   Serial.println("   Tamanho: " + String(fb->len) + " bytes");
@@ -506,14 +403,14 @@ void handleSetClass() {
       imageCountClass = 0;
       currentClass = newClass;
       
-      Serial.println("🏷️ CLASSE ALTERADA PARA: " + currentClass);
+      Serial.println("CLASSE ALTERADA PARA: " + currentClass);
       Serial.println("   Contador da classe resetado");
       Serial.println();
     }
     
     server.send(200, "text/plain", "OK");
   } else {
-    server.send(400, "text/plain", "Parâmetro 'class' não encontrado");
+    server.send(400, "text/plain", "Parametro 'class' nao encontrado");
   }
 }
 
