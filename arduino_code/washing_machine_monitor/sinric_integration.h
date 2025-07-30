@@ -5,25 +5,107 @@
 #include <SinricProSwitch.h>
 #include "config.h"
 
-// =================== FUNÇÕES AVANÇADAS ===================
+// =================== VARIÁVEIS GLOBAIS ===================
+extern String currentWashingStage;
+extern float lastConfidence;
 
-void sendCustomWashingStageToAlexa(String stage) {
-    if (!SinricPro.isConnected()) return;
+// =================== DECLARAÇÕES DE FUNÇÕES ===================
+bool setupSinricProIntegration();
+void updateSinricProStatus(String stage, float confidence);
+void handleSinricProRequests();
+bool onPowerState(const String &deviceId, bool &state);
+int mapStageToNumber(String stage);
+String mapNumberToStage(int number);
+void sendCustomWashingStageToAlexa(String stage);
+String generateAlexaResponse(String stage, float confidence);
+void printSinricProStatus();
+bool testSinricProConnection();
+void handleSinricProError(String error);
+void trackUsageStatistics();
+void onWashingCycleComplete();
+
+// =================== IMPLEMENTAÇÃO ===================
+
+bool setupSinricProIntegration() {
+    Serial.println("Configurando integracao Sinric Pro...");
     
-    // Criar payload customizado para enviar etapa específica
-    DynamicJsonDocument doc(1024);
-    doc["deviceId"] = SINRIC_DEVICE_ID;
-    doc["action"] = "setRangeValue";
-    doc["value"]["rangeValue"] = mapStageToNumber(stage);
-    doc["value"]["rangeName"] = "WashingStage";
+    // Verificar se as credenciais estão definidas
+    if (String(SINRIC_APP_KEY) == "SUA_APP_KEY" || 
+        String(SINRIC_APP_SECRET) == "SEU_APP_SECRET" || 
+        String(SINRIC_DEVICE_ID) == "SEU_DEVICE_ID") {
+        Serial.println("AVISO: Credenciais Sinric Pro nao configuradas!");
+        Serial.println("Configure em config.h para habilitar integracao com Alexa");
+        return false;
+    }
     
-    String payload;
-    serializeJson(doc, payload);
+    // Configurar dispositivo switch
+    SinricProSwitch &myWashingMachine = SinricPro[SINRIC_DEVICE_ID];
     
-    // Enviar mensagem customizada
-    // Nota: Esta funcionalidade pode requerer configuração adicional no Sinric Pro
-    Serial.printf("Enviando etapa customizada: %s\n", stage.c_str());
+    // Registrar callback para controle de energia
+    myWashingMachine.onPowerState(onPowerState);
+    
+    // Configurar callbacks de conexão
+    SinricPro.onConnected([]() {
+        Serial.println("Sinric Pro conectado com sucesso!");
+    });
+    
+    SinricPro.onDisconnected([]() {
+        Serial.println("Sinric Pro desconectado!");
+    });
+    
+    // Inicializar conexão
+    SinricPro.begin(SINRIC_APP_KEY, SINRIC_APP_SECRET);
+    
+    Serial.println("Sinric Pro inicializado!");
+    Serial.println("Alexa pode agora controlar a lavadora");
+    
+    // Aguardar conexão estabilizar
+    delay(2000);
+    
+    return true;
 }
+
+void handleSinricProRequests() {
+    SinricPro.handle();
+}
+
+void updateSinricProStatus(String stage, float confidence) {
+    if (!SinricPro.isConnected()) {
+        return; // Não fazer nada se não estiver conectado
+    }
+    
+    SinricProSwitch &myWashingMachine = SinricPro[SINRIC_DEVICE_ID];
+    
+    // Mapear etapa para estado de energia (ligado/desligado)
+    bool powerState = (stage != "desligado");
+    
+    // Enviar estado de energia
+    myWashingMachine.sendPowerStateEvent(powerState);
+    
+    // Log da atualização
+    Serial.printf("Sinric Pro atualizado: %s (%.1f%%)\n", stage.c_str(), confidence * 100);
+}
+
+// =================== CALLBACKS DO SINRIC PRO ===================
+
+bool onPowerState(const String &deviceId, bool &state) {
+    Serial.printf("Alexa solicitou: %s\n", state ? "LIGAR" : "DESLIGAR");
+    
+    // Responder com estado atual real
+    state = (currentWashingStage != "desligado");
+    
+    // Enviar resposta personalizada dependendo do estado
+    if (state) {
+        Serial.println("Resposta: Lavadora esta em operacao");
+        Serial.printf("Etapa atual: %s\n", currentWashingStage.c_str());
+    } else {
+        Serial.println("Resposta: Lavadora esta desligada");
+    }
+    
+    return true; // Confirma que o comando foi processado
+}
+
+// =================== FUNÇÕES AUXILIARES ===================
 
 int mapStageToNumber(String stage) {
     // Mapear etapas para números para facilitar integração
@@ -48,37 +130,34 @@ String mapNumberToStage(int number) {
     }
 }
 
-// =================== COMANDOS DE VOZ PERSONALIZADOS ===================
+// =================== FUNÇÕES AVANÇADAS ===================
 
-void setupCustomVoiceCommands() {
-    // Configurar respostas personalizadas para diferentes comandos
-    Serial.println("Configurando comandos de voz personalizados...");
-    
-    // Estas funções podem ser expandidas para responder a comandos específicos
-    // Por exemplo: "Alexa, qual a etapa da lavadora?"
-    // Resposta: "A lavadora está na etapa de centrifugação com 95% de confiança"
+void sendCustomWashingStageToAlexa(String stage) {
+    // Funcionalidade simplificada para v3.5.1
+    updateSinricProStatus(stage, lastConfidence);
+    Serial.printf("Enviando etapa para Alexa: %s\n", stage.c_str());
 }
 
 String generateAlexaResponse(String stage, float confidence) {
     String response = "";
     
     if (stage == "desligado") {
-        response = "A lavadora está desligada";
+        response = "A lavadora esta desligada";
     } else if (stage == "centrifugacao") {
-        response = "A lavadora está centrifugando as roupas";
+        response = "A lavadora esta centrifugando as roupas";
     } else if (stage == "enxague") {
-        response = "A lavadora está enxaguando as roupas";
+        response = "A lavadora esta enxaguando as roupas";
     } else if (stage.startsWith("molho")) {
-        response = "A lavadora está no ciclo de molho";
+        response = "A lavadora esta no ciclo de molho";
     } else {
-        response = "A lavadora está em operação";
+        response = "A lavadora esta em operacao";
     }
     
     // Adicionar informação de confiança se for alta
     if (confidence > 0.9) {
-        response += " com alta precisão";
+        response += " com alta precisao";
     } else if (confidence > 0.7) {
-        response += " com boa precisão";
+        response += " com boa precisao";
     }
     
     return response;
@@ -88,10 +167,10 @@ String generateAlexaResponse(String stage, float confidence) {
 
 void printSinricProStatus() {
     Serial.println("=== STATUS SINRIC PRO ===");
-    Serial.printf("Conectado: %s\n", SinricPro.isConnected() ? "Sim" : "Não");
+    Serial.printf("Conectado: %s\n", SinricPro.isConnected() ? "Sim" : "Nao");
     Serial.printf("Device ID: %s\n", SINRIC_DEVICE_ID);
-    Serial.printf("Último estado enviado: %s\n", currentWashingStage.c_str());
-    Serial.printf("Última confiança: %.1f%%\n", lastConfidence * 100);
+    Serial.printf("Ultimo estado enviado: %s\n", currentWashingStage.c_str());
+    Serial.printf("Ultima confianca: %.1f%%\n", lastConfidence * 100);
     Serial.println("========================");
 }
 
@@ -115,39 +194,6 @@ bool testSinricProConnection() {
     } else {
         Serial.println("Falha no teste de envio");
         return false;
-    }
-}
-
-// =================== CONFIGURAÇÕES AVANÇADAS ===================
-
-void configureSinricProSettings() {
-    // Configurações adicionais que podem ser úteis
-    SinricPro.restoreDeviceStates(true); // Restaurar estados após reconexão
-    
-    // Configurar intervalo de heartbeat
-    // SinricPro.setResponseMessage("Lavadora IoT respondendo");
-}
-
-// =================== INTEGRAÇÃO COM OUTROS SERVIÇOS ===================
-
-void sendNotificationToAlexa(String message) {
-    // Função para enviar notificações proativas
-    // Útil para avisar quando um ciclo termina
-    
-    if (!SinricPro.isConnected()) return;
-    
-    Serial.printf("Enviando notificacao: %s\n", message.c_str());
-    
-    // Implementar envio de notificação personalizada
-    // Esta funcionalidade pode requerer configuração adicional no Sinric Pro
-}
-
-void onWashingCycleComplete() {
-    // Função chamada quando um ciclo de lavagem é concluído
-    if (currentWashingStage == "centrifugacao") {
-        // Assumir que centrifugação é a última etapa
-        sendNotificationToAlexa("O ciclo de lavagem foi concluído");
-        Serial.println("Ciclo de lavagem concluido!");
     }
 }
 
@@ -187,118 +233,20 @@ void trackUsageStatistics() {
     }
 }
 
-#endif // SINRIC_INTEGRATION_H= VARIÁVEIS GLOBAIS ===================
-extern String currentWashingStage;
-extern float lastConfidence;
+// =================== COMANDOS DE VOZ PERSONALIZADOS ===================
 
-// =================== FUNÇÕES PÚBLICAS ===================
-bool setupSinricProIntegration();
-void updateSinricProStatus(String stage, float confidence);
-void handleSinricProRequests();
-
-// =================== CALLBACKS ===================
-bool onPowerState(const String &deviceId, bool &state);
-bool onBrightnessState(const String &deviceId, int &brightness);
-
-// =================== IMPLEMENTAÇÃO ===================
-
-bool setupSinricProIntegration() {
-    Serial.println("Configurando integração Sinric Pro...");
-    
-    // Verificar se as credenciais estão definidas
-    if (String(SINRIC_APP_KEY) == "SUA_APP_KEY" || 
-        String(SINRIC_APP_SECRET) == "SEU_APP_SECRET" || 
-        String(SINRIC_DEVICE_ID) == "SEU_DEVICE_ID") {
-        Serial.println("AVISO: Credenciais Sinric Pro nao configuradas!");
-        Serial.println("Configure em config.h para habilitar integracao com Alexa");
-        return false;
-    }
-    
-    // Configurar dispositivo switch
-    SinricProSwitch &myWashingMachine = SinricPro[SINRIC_DEVICE_ID];
-    
-    // Registrar callbacks
-    myWashingMachine.onPowerState(onPowerState);
-    myWashingMachine.onBrightnessState(onBrightnessState);
-    
-    // Configurar Sinric Pro
-    SinricPro.onConnected([]() {
-        Serial.println("Sinric Pro conectado!");
-    });
-    
-    SinricPro.onDisconnected([]() {
-        Serial.println("Sinric Pro desconectado!");
-    });
-    
-    // Inicializar conexão
-    bool success = SinricPro.begin(SINRIC_APP_KEY, SINRIC_APP_SECRET);
-    
-    if (success) {
-        Serial.println("Sinric Pro inicializado com sucesso!");
-        Serial.println("Alexa pode agora controlar a lavadora");
+void onWashingCycleComplete() {
+    // Função chamada quando um ciclo de lavagem é concluído
+    if (currentWashingStage == "centrifugacao") {
+        // Assumir que centrifugação é a última etapa
+        Serial.println("Ciclo de lavagem concluido!");
         
-        // Enviar estado inicial
-        delay(2000); // Aguardar conexão estabilizar
-        updateSinricProStatus(currentWashingStage, lastConfidence);
-        
-        return true;
-    } else {
-        Serial.println("Falha ao inicializar Sinric Pro");
-        return false;
+        // Enviar notificação simples via mudança de estado
+        SinricProSwitch &myWashingMachine = SinricPro[SINRIC_DEVICE_ID];
+        myWashingMachine.sendPowerStateEvent(false); // Sinalizar conclusão
+        delay(1000);
+        myWashingMachine.sendPowerStateEvent(true);
     }
 }
 
-void handleSinricProRequests() {
-    SinricPro.handle();
-}
-
-void updateSinricProStatus(String stage, float confidence) {
-    if (!SinricPro.isConnected()) {
-        return; // Não fazer nada se não estiver conectado
-    }
-    
-    SinricProSwitch &myWashingMachine = SinricPro[SINRIC_DEVICE_ID];
-    
-    // Mapear etapa para estado de energia (ligado/desligado)
-    bool powerState = (stage != "desligado");
-    
-    // Mapear confiança para brilho (0-100)
-    int brightness = (int)(confidence * 100);
-    
-    // Enviar atualizações
-    myWashingMachine.sendPowerStateEvent(powerState);
-    myWashingMachine.sendBrightnessStateEvent(brightness);
-    
-    // Log da atualização
-    Serial.printf("Sinric Pro atualizado: %s (%.1f%%)\n", stage.c_str(), confidence * 100);
-}
-
-// =================== CALLBACKS DO SINRIC PRO ===================
-
-bool onPowerState(const String &deviceId, bool &state) {
-    Serial.printf("Alexa solicitou: %s\n", state ? "LIGAR" : "DESLIGAR");
-    
-    // Responder com estado atual real
-    state = (currentWashingStage != "desligado");
-    
-    // Enviar resposta personalizada dependendo do estado
-    if (state) {
-        Serial.println("Resposta: Lavadora esta em operacao");
-        Serial.printf("Etapa atual: %s\n", currentWashingStage.c_str());
-    } else {
-        Serial.println("Resposta: Lavadora esta desligada");
-    }
-    
-    return true; // Confirma que o comando foi processado
-}
-
-bool onBrightnessState(const String &deviceId, int &brightness) {
-    // Usar brightness para reportar confiança da predição
-    brightness = (int)(lastConfidence * 100);
-    
-    Serial.printf("Alexa solicitou brilho: %d%% (confianca atual)\n", brightness);
-    
-    return true;
-}
-
-// ==================
+#endif // SINRIC_INTEGRATION_H

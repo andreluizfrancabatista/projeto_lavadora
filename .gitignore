@@ -1,0 +1,228 @@
+# =================== PROJETO ESP32-CAM LAVADORA IOT ===================
+# .gitignore para projeto Arduino + TinyML + Dados de treinamento
+
+# =================== ARQUIVOS TEMPORÁRIOS ARDUINO ===================
+# Build artifacts do Arduino IDE
+*.hex
+*.bin
+*.elf
+*.map
+*.o
+*.a
+*.d
+*.lst
+
+# Cache do Arduino IDE
+.arduino/
+.build/
+build/
+*.cache/
+
+# Configurações específicas do usuário Arduino IDE
+preferences.txt
+platform.txt
+
+# =================== CREDENCIAIS E CONFIGURAÇÕES SENSÍVEIS ===================
+# Arquivos com credenciais reais (manter apenas templates)
+config_local.h
+secrets.h
+credentials.h
+wifi_config.h
+
+# Backup de configurações com credenciais
+config.h.bak
+config_backup.h
+config.h
+
+# =================== DATASET E IMAGENS ===================
+# Imagens de treinamento (muito grandes para Git)
+data_collection/**/*.jpg
+data_collection/**/*.jpeg
+data_collection/**/*.png
+data_collection/**/*.bmp
+
+# Manter estrutura de pastas mas ignorar conteúdo
+!data_collection/**/
+!data_collection/**/.gitkeep
+
+# Imagens processadas/redimensionadas
+data_collection_cropped/
+processed_images/
+augmented_data/
+
+# =================== MODELOS DE ML ===================
+# Modelos treinados (grandes demais para Git)
+*.tflite
+*.h5
+*.pb
+*.onnx
+*.pkl
+
+# Arquivos de cache do Edge Impulse
+edge-impulse-*/
+ei-*.zip
+
+# Bibliotecas geradas pelo Edge Impulse
+*_inferencing/
+*-project-*_inferencing/
+
+# =================== LOGS E DADOS DE DEPURAÇÃO ===================
+# Logs do sistema
+logs/
+*.log
+debug.txt
+serial_output.txt
+
+# Dados de telemetria
+telemetry/
+metrics/
+*.csv
+
+# Screenshots e capturas
+screenshots/
+captures/
+
+# =================== FERRAMENTAS DE DESENVOLVIMENTO ===================
+# VS Code
+.vscode/
+*.code-workspace
+
+# Platform IO (se usado)
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# CLion / IntelliJ
+.idea/
+cmake-build-*/
+
+# =================== PYTHON (para scripts de processamento) ===================
+# Ambiente virtual Python
+venv/
+env/
+.env
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# =================== SISTEMA OPERACIONAL ===================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Linux
+*~
+.nfs*
+
+# =================== BACKUP E TEMPORÁRIOS ===================
+# Arquivos de backup
+*.bak
+*.backup
+*.tmp
+*.temp
+*~
+
+# Arquivos de swap
+*.swp
+*.swo
+
+# Compressed files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# =================== DOCUMENTAÇÃO GERADA ===================
+# Documentação auto-gerada
+docs/build/
+docs/_build/
+site/
+
+# =================== TESTES E SIMULAÇÃO ===================
+# Dados de teste
+test_data/
+test_images/
+simulation_results/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# =================== CONFIGURAÇÕES ESPECÍFICAS DO PROJETO ===================
+# Configurações de rede específicas do ambiente
+network_config.json
+wifi_credentials.json
+
+# Dados de calibração da câmera
+camera_calibration.dat
+sensor_calibration.json
+
+# IDs de dispositivos específicos
+device_ids.txt
+sinric_config.json
+
+# =================== INCLUSÕES FORÇADAS ===================
+# Forçar inclusão de arquivos importantes mesmo se matched acima
+!README.md
+!LICENSE
+!.gitignore
+!.gitkeep
+
+# Templates de configuração (sem credenciais reais)
+!config_template.h
+!credentials_template.h
+
+# Documentação essencial
+!docs/README.md
+!docs/*.md
+
+# Exemplos de imagens (pequenas, para demonstração)
+!examples/*.jpg
+!examples/*.png
+
+# =================== EDGE IMPULSE ESPECÍFICO ===================
+# Manter apenas arquivos necessários do Edge Impulse
+!arduino_code/*_inferencing/src/
+!arduino_code/*_inferencing/examples/esp32/
+!arduino_code/*_inferencing/library.properties
+
+# Ignorar resto da biblioteca Edge Impulse (muito grande)
+arduino_code/*_inferencing/examples/nano_ble33_sense/
+arduino_code/*_inferencing/examples/nano_ble33_sense_rev2/
+arduino_code/*_inferencing/examples/nicla_*/
+arduino_code/*_inferencing/examples/portenta_*/
+arduino_code/*_inferencing/examples/rp2040/
+arduino_code/*_inferencing/examples/sony_spresense/
+arduino_code/*_inferencing/examples/static_buffer/
+
+# =================== NOTAS PARA COLABORADORES ===================
+# Este .gitignore exclui:
+# 1. Dados de treinamento (muito grandes)
+# 2. Credenciais sensíveis (segurança)
+# 3. Arquivos temporários (limpeza)
+# 4. Bibliotecas geradas (podem ser regeneradas)
+#
+# Para configurar o projeto:
+# 1. Copie config_template.h para config.h
+# 2. Preencha suas credenciais WiFi e Sinric Pro
+# 3. Baixe o modelo do Edge Impulse
+# 4. Adicione suas imagens de treinamento
