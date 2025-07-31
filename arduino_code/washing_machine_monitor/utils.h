@@ -48,6 +48,10 @@ String formatUptime(unsigned long seconds) {
 }
 
 void printSystemDiagnostics() {
+    extern String currentWashingStage;
+    extern float lastConfidence;
+    extern unsigned long getSystemUptime();
+    
     Serial.println("\n┌─────────────────────────────────────────┐");
     Serial.println("│           DIAGNOSTICO SISTEMA           │");
     Serial.println("├─────────────────────────────────────────┤");
@@ -62,15 +66,13 @@ void printSystemDiagnostics() {
     Serial.printf("│ WiFi Quality: %-23.1f │\n", getWiFiSignalQuality());
     
     // Informações de sistema
-    extern unsigned long getSystemUptime();
     Serial.printf("│ Uptime: %-31s │\n", formatUptime(getSystemUptime()).c_str());
     Serial.printf("│ CPU Freq: %-27d │\n", ESP.getCpuFreqMHz());
     
-    // Status dos módulos
-    extern String currentWashingStage;
-    extern float lastConfidence;
-    Serial.printf("│ ML Stage: %-27s │\n", currentWashingStage.c_str());
-    Serial.printf("│ ML Conf: %-28.1f │\n", lastConfidence * 100);
+    // Status do sistema (sem ML)
+    Serial.printf("│ Estado: %-29s │\n", currentWashingStage.c_str());
+    Serial.printf("│ Confianca: %-26.1f │\n", lastConfidence * 100);
+    Serial.printf("│ Modo: %-31s │\n", "Demonstracao");
     
     Serial.println("└─────────────────────────────────────────┘\n");
 }
@@ -103,6 +105,7 @@ String getSystemStatusJSON() {
     json += "\"wifi_rssi\":" + String(WiFi.RSSI()) + ",";
     json += "\"wifi_quality\":" + String(getWiFiSignalQuality()) + ",";
     json += "\"cpu_freq\":" + String(ESP.getCpuFreqMHz()) + ",";
+    json += "\"mode\":\"demonstration\",";
     json += "\"timestamp\":" + String(millis());
     json += "}";
     
@@ -110,16 +113,23 @@ String getSystemStatusJSON() {
 }
 
 void performSystemMaintenance() {
+    extern String currentWashingStage;
+    extern float lastConfidence;
+    extern unsigned long getSystemUptime();
+    
     static unsigned long lastMaintenance = 0;
     unsigned long now = millis();
     
-    // Executar manutenção a cada hora
-    if (now - lastMaintenance > 3600000) {
-        Serial.println("Executando manutencao do sistema...");
+    // Executar manutenção básica
+    if (now - lastMaintenance > 3600000) { // A cada hora
+        if (DEBUG_SYSTEM) {
+            Serial.println("Executando manutencao do sistema...");
+        }
         
         // 1. Verificar memória
-        if (ESP.getFreeHeap() < 50000) {
-            Serial.println("AVISO: Memoria baixa!");
+        int freeHeap = ESP.getFreeHeap();
+        if (freeHeap < 50000) {
+            Serial.printf("AVISO: Memoria baixa: %d bytes\n", freeHeap);
         }
         
         // 2. Verificar qualidade WiFi
@@ -127,18 +137,26 @@ void performSystemMaintenance() {
             Serial.println("AVISO: Sinal WiFi fraco!");
         }
         
-        // 3. Verificar se Sinric Pro está conectado
+        // 3. Verificar conectividade WiFi
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("AVISO: WiFi desconectado, tentando reconectar...");
+            WiFi.reconnect();
+        }
+        
+        // 4. Verificar Sinric Pro
         if (!SinricPro.isConnected()) {
             Serial.println("AVISO: Sinric Pro desconectado!");
         }
         
-        // 4. Verificar temperatura do chip (se disponível)
+        // 5. Verificar temperatura do chip (se disponível)
         float temp = temperatureRead();
         if (temp > 80) {
             Serial.printf("AVISO: Temperatura alta: %.1f°C\n", temp);
         }
         
-        Serial.println("Manutencao concluida");
+        if (DEBUG_SYSTEM) {
+            Serial.println("Manutencao concluida");
+        }
         lastMaintenance = now;
     }
 }
@@ -187,31 +205,14 @@ bool validateSystemState() {
         isValid = false;
     }
     
-    // Verificar modelo ML
+    // Verificar estado do sistema
     extern String currentWashingStage;
     if (currentWashingStage == "") {
-        logError("Estado ML nao inicializado", "validateSystemState");
+        logError("Estado do sistema nao inicializado", "validateSystemState");
         isValid = false;
     }
     
     return isValid;
-}
-
-// =================== FUNÇÕES DE CONFIGURAÇÃO ===================
-
-void loadSystemConfiguration() {
-    // Carregar configurações salvas (se implementado)
-    logInfo("Carregando configuracoes do sistema");
-    
-    // Aqui poderia carregar configurações do EEPROM ou SPIFFS
-    // Por enquanto, usar valores padrão do config.h
-}
-
-void saveSystemConfiguration() {
-    // Salvar configurações atuais (se implementado)
-    logInfo("Salvando configuracoes do sistema");
-    
-    // Aqui poderia salvar no EEPROM ou SPIFFS
 }
 
 // =================== FUNÇÕES DE REDE ===================
@@ -267,13 +268,35 @@ void softReset() {
 void factoryReset() {
     logInfo("Executando factory reset");
     
-    // Limpar configurações salvas
-    // EEPROM.begin(512);
-    // for (int i = 0; i < 512; i++) EEPROM.write(i, 0);
-    // EEPROM.commit();
-    
+    // Limpar configurações salvas se implementado
     delay(1000);
     ESP.restart();
+}
+
+// =================== FUNÇÕES ESPECÍFICAS DO MODO DEMONSTRAÇÃO ===================
+
+void logDemoStateChange(String oldState, String newState, float confidence) {
+    logEvent("Mudanca de estado demo", oldState + " -> " + newState + " (" + String(confidence * 100, 1) + "%)");
+}
+
+void validateDemoState(String state) {
+    // Verificar se o estado é válido
+    bool validState = false;
+    for (int i = 0; i < NUM_DEMO_STATES; i++) {
+        if (String(DEMO_STATES[i]) == state) {
+            validState = true;
+            break;
+        }
+    }
+    
+    if (!validState) {
+        logWarning("Estado demo invalido: " + state);
+    }
+}
+
+String getRandomDemoState() {
+    int randomIndex = random(NUM_DEMO_STATES);
+    return String(DEMO_STATES[randomIndex]);
 }
 
 #endif // UTILS_H
